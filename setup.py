@@ -5,6 +5,8 @@ VERSION = "0.0.0.dev0"
 
 REQUIRES = [
     "evdev>=1.0.0,<2.0.0",
+    "click>=6.7,<7",
+    "PyYAML>=3.13,<4",
 ]
 
 CLASSIFIERS = [
@@ -17,7 +19,6 @@ CLASSIFIERS = [
     "Natural Language :: English",
     "Operating System :: POSIX :: Linux",  # relies on uinput
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.5",  # TODO remove if we use f strings
     "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3 :: Only",
     "Topic :: Utilities",
@@ -27,7 +28,7 @@ CLASSIFIERS = [
 setup(
     name="frankengamepad",
     version=VERSION,
-    python_requires='>=3.5',  # TODO do we use f strings?
+    python_requires='>=3.6',
     url="https://github.com/danielkinsman/frankengamepad",
     author="Daniel Kinsman",
     author_email="danielkinsman@riseup.net",
@@ -35,7 +36,7 @@ setup(
     license="GPLv3+",
     packages=find_packages(),
     entry_points={"console_scripts": [
-        # TODO
+        "frankengamepad=frankengamepad.main:main",
     ]},
     install_requires=REQUIRES,
 )

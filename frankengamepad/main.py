@@ -10,7 +10,48 @@ import yaml
 
 DEFAULT_CONFIG = {
     "sources": {},
+    "outputs": {},
 }
+
+PREDEFINED_CAPABILITIES = {
+    # To generate these, connect and load the device for reading then use
+    # `evdev.InputDevice.capabilities()`
+    "xbox360":
+    {
+	0: [0, 1, 3, 21],
+	1:
+        [
+            304,
+	    305,
+            307,
+            308,
+            310,
+            311,
+            314,
+            315,
+            316,
+            317,
+            318,
+            704,
+            705,
+            706,
+            707,
+        ],
+        3:
+        [
+            (0, evdev.device.AbsInfo(value=-2687, min=-32768, max=32767, fuzz=16, flat=128, resolution=0)),
+            (1, evdev.device.AbsInfo(value=-5789, min=-32768, max=32767, fuzz=16, flat=128, resolution=0)),
+            (2, evdev.device.AbsInfo(value=0, min=0, max=255, fuzz=0, flat=0, resolution=0)),
+            (3, evdev.device.AbsInfo(value=496, min=-32768, max=32767, fuzz=16, flat=128, resolution=0)),
+            (4, evdev.device.AbsInfo(value=-2833, min=-32768, max=32767, fuzz=16, flat=128, resolution=0)),
+            (5, evdev.device.AbsInfo(value=0, min=0, max=255, fuzz=0, flat=0, resolution=0)),
+            (16, evdev.device.AbsInfo(value=0, min=-1, max=1, fuzz=0, flat=0, resolution=0)),
+            (17, evdev.device.AbsInfo(value=0, min=-1, max=1, fuzz=0, flat=0, resolution=0)),
+        ],
+        21: [80, 81, 88, 89, 90, 96]
+    }
+}
+
 
 logger = logging.getLogger(__name__)
 
@@ -54,12 +95,6 @@ def default_config_file():
 
 
 async def process_events(device, config, franken_uinputs):
-    # config looks like this:
-    #
-    # {
-    #     0: {"frankengamepad0": 0},
-    # }
-
     hooked_uinputs = []
     for event_code_config in config.values():
         for franken_device_name in event_code_config.keys():
@@ -121,6 +156,52 @@ def load_config(config_file):
     return replace_keys_and_values(config)
 
 
+def make_franken_uinputs(config):
+    def make_uinput(name, device_config):
+        # either predefined or custom
+        try:
+            capabilities = PREDEFINED_CAPABILITIES[device_config["type"]]
+        except KeyError:
+            capabilities = {}  # TODO based on device_config["type"]["capabilities"]
+
+        capabilities = {k: v for k, v in capabilities.items()
+                if k not in {evdev.ecodes.EV_SYN, evdev.ecodes.EV_FF}}
+        return evdev.UInput(capabilities, name=name)
+
+    frankens = {k: make_uinput(k, v) for k, v in config.items()}
+    for name, uinput in frankens.items():
+        logger.info(f"Created {name} at {uinput.device.path}")
+
+    return frankens
+
+
+def run_translations(config, franken_uinputs):
+    all_devices = (evdev.InputDevice(p) for p in evdev.list_devices())
+    all_devices = {d.name: d for d in all_devices}
+
+    grabbed = []
+    try:
+        for source in config.values():
+            try:
+                device  = all_devices[source["name"]]
+            except KeyError:
+                raise KeyError(f"Could not find device `{source['name']}`")
+
+            if source["exclusive"]:
+                device.grab()
+                grabbed.append(device)
+                logger.info(f"Grabbed exclusive access to {device.path}")
+
+            asyncio.ensure_future(process_events(device, source["events"], franken_uinputs))
+
+        loop = asyncio.get_event_loop()
+        loop.run_forever()
+    finally:
+        for d in grabbed:
+            d.ungrab()
+            logger.info(f"Released exclusive access to {d.path}")
+
+
 @click.command()
 @click.argument("config_file", default=default_config_file(),
     type=click.Path(exists=True, dir_okay=False, resolve_path=True))
@@ -132,54 +213,6 @@ def main(config_file, logfile):
         config_file = default_config_file()
 
     config = load_config(config_file)
-    # config now looks like this:
-
-    #   {
-    #       sources:
-    #       {
-    #           usbgamepad:
-    #           {
-    #               "name": "usb gamepad",
-    #               "exclusive": True
-    #               "events":
-    #               {
-    #                   0: {"frankengamepad0": 0},
-    #               }
-    #           },
-    #       }
-    #   }
-
-    all_devices = (evdev.InputDevice(p) for p in evdev.list_devices())
-    all_devices = {d.name: d for d in all_devices}
-
-    # TODO create franken devices property
-    franken_uinput = {
-        "frankengamepad0": evdev.UInput.from_device(
-             all_devices["Xbox 360 Wireless Receiver (XBOX)"],
-             name="frankengamepad0",
-        )
-    }
-
-    grabbed = []
-    try:
-        for source in config["sources"].values():
-            try:
-                device  = all_devices[source["name"]]
-            except KeyError:
-                raise KeyError(f"Could not find device `{source['name']}`")
-
-            if source["exclusive"]:
-                device.grab()
-                grabbed.append(device)
-                logger.info(f"Grabbed exclusive access to {device.path}")
-
-            asyncio.ensure_future(process_events(device, source["events"], franken_uinput))
-
-        loop = asyncio.get_event_loop()
-        loop.run_forever()
-    finally:
-        for d in grabbed:
-            d.ungrab()
-            logger.info(f"Released exclusive access to {d.path}")
-
+    franken_uinputs = make_franken_uinputs(config["outputs"])
+    run_translations(config["sources"], franken_uinputs)
     sys.exit(0)

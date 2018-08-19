@@ -56,48 +56,41 @@ def default_config_file():
 async def process_events(device, config, franken_uinputs):
     # config looks like this:
     #
-    #   0:
-    #   {
-    #       0:
-    #       {
-    #           "frankengamepadzero": {0: 0},
-    #       }
-    #   }
+    # {
+    #     0: {"frankengamepad0": 0},
+    # }
 
     hooked_uinputs = []
-    for event_type_config in config.values():
-        for event_code_config in event_type_config.values():
-            for franken_device_name in event_code_config.keys():
-                hooked_uinputs.append(franken_uinputs[franken_device_name])
+    for event_code_config in config.values():
+        for franken_device_name in event_code_config.keys():
+            hooked_uinputs.append(franken_uinputs[franken_device_name])
 
     async for event in device.async_read_loop():
         # always pass on sync events
         if event.type == evdev.ecodes.EV_SYN:
             for franken_uinput in hooked_uinputs:
-                franken_event(event, franken_uinput, event.type, event.code)
+                franken_event(event, franken_uinput, event.code)
 
             continue
 
         try:
-            event_config = config[event.type][event.code]
+            event_config = config[event.code]
         except KeyError:
             logger.debug(f"skipping event {device.path} {evdev.categorize(event)} {event.code}")
             continue
 
-        for franken_device_name, franken_event_config in event_config.items():
-            for franken_event_type, franken_event_code in franken_event_config.items():
-                franken_event(
-                    event,
-                    franken_uinputs[franken_device_name],
-                    franken_event_type,
-                    franken_event_code,
-                )
+        for franken_device_name, franken_event_code in event_config.items():
+            franken_event(
+                event,
+                franken_uinputs[franken_device_name],
+                franken_event_code,
+            )
 
-def franken_event(original_event, franken_uinput, franken_event_type, franken_event_code):
+def franken_event(original_event, franken_uinput, franken_event_code):
     event = evdev.InputEvent(
         original_event.sec,
         original_event.usec,
-        franken_event_type,
+        original_event.type,
         franken_event_code,
         original_event.value
     )
@@ -148,12 +141,9 @@ def main(config_file, logfile):
     #           {
     #               "name": "usb gamepad",
     #               "exclusive": True
-    #               "events": {
-    #                   0: {
-    #                       0: {
-    #                           "frankengamepadzero": {0: 0},
-    #                       }
-    #                   }
+    #               "events":
+    #               {
+    #                   0: {"frankengamepad0": 0},
     #               }
     #           },
     #       }

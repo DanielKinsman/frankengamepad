@@ -53,9 +53,56 @@ def default_config_file():
     return default
 
 
-async def process_events(device, config):
+async def process_events(device, config, franken_uinputs):
+    # config looks like this:
+    #
+    #   0:
+    #   {
+    #       0:
+    #       {
+    #           "frankengamepadzero": {0: 0},
+    #       }
+    #   }
+
+    hooked_uinputs = []
+    for event_type_config in config.values():
+        for event_code_config in event_type_config.values():
+            for franken_device_name in event_code_config.keys():
+                hooked_uinputs.append(franken_uinputs[franken_device_name])
+
     async for event in device.async_read_loop():
-        print(device.path, evdev.categorize(event), sep=': ')
+        # always pass on sync events
+        if event.type == evdev.ecodes.EV_SYN:
+            for franken_uinput in hooked_uinputs:
+                franken_event(event, franken_uinput, event.type, event.code)
+
+            continue
+
+        try:
+            event_config = config[event.type][event.code]
+        except KeyError:
+            logger.debug(f"skipping event {device.path} {evdev.categorize(event)} {event.code}")
+            continue
+
+        for franken_device_name, franken_event_config in event_config.items():
+            for franken_event_type, franken_event_code in franken_event_config.items():
+                franken_event(
+                    event,
+                    franken_uinputs[franken_device_name],
+                    franken_event_type,
+                    franken_event_code,
+                )
+
+def franken_event(original_event, franken_uinput, franken_event_type, franken_event_code):
+    event = evdev.InputEvent(
+        original_event.sec,
+        original_event.usec,
+        franken_event_type,
+        franken_event_code,
+        original_event.value
+    )
+    franken_uinput.write_event(event)
+    logger.debug(f"generated event {franken_uinput.device.path} {evdev.categorize(event)} {event.code}")
 
 
 def load_config(config_file):
@@ -92,7 +139,6 @@ def main(config_file, logfile):
         config_file = default_config_file()
 
     config = load_config(config_file)
-
     # config now looks like this:
 
     #   {
@@ -104,8 +150,11 @@ def main(config_file, logfile):
     #               "exclusive": True
     #               "events": {
     #                   0: {
-    #                       "frankengamepadzero": 0,
+    #                       0: {
+    #                           "frankengamepadzero": {0: 0},
+    #                       }
     #                   }
+    #               }
     #           },
     #       }
     #   }
@@ -113,7 +162,10 @@ def main(config_file, logfile):
     all_devices = (evdev.InputDevice(p) for p in evdev.list_devices())
     all_devices = {d.name: d for d in all_devices}
 
-    # TODO create franken devices
+    # TODO create franken devices property
+    franken_uinput = {
+         "frankengamepad0": evdev.UInput.from_device(all_devices["opentrack headpose"])
+    }
 
     grabbed = []
     try:
@@ -128,7 +180,8 @@ def main(config_file, logfile):
                 grabbed.append(device)
                 logger.info(f"Grabbed exclusive access to {device.path}")
 
-            asyncio.ensure_future(process_events(device, source["events"]))
+            asyncio.ensure_future(process_events(device, source["events"], franken_uinput))
+
         loop = asyncio.get_event_loop()
         loop.run_forever()
     finally:

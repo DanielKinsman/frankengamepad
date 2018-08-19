@@ -76,7 +76,7 @@ async def process_events(device, config, franken_uinputs):
         try:
             event_config = config[event.code]
         except KeyError:
-            logger.debug(f"skipping event {device.path} {evdev.categorize(event)} {event.code}")
+            logger.debug(f"skipping event {device.path}|{event.type}|{event.code}|{evdev.categorize(event)}")
             continue
 
         for franken_device_name, franken_event_code in event_config.items():
@@ -154,7 +154,10 @@ def main(config_file, logfile):
 
     # TODO create franken devices property
     franken_uinput = {
-         "frankengamepad0": evdev.UInput.from_device(all_devices["opentrack headpose"])
+        "frankengamepad0": evdev.UInput.from_device(
+             all_devices["Xbox 360 Wireless Receiver (XBOX)"],
+             name="frankengamepad0",
+        )
     }
 
     grabbed = []

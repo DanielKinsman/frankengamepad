@@ -97,7 +97,7 @@ def run_translations(config, franken_uinputs):
             except KeyError:
                 raise KeyError(f"Could not find device `{source['name']}`")
 
-            if source["exclusive"]:
+            if source.get("exclusive", False):
                 device.grab()
                 grabbed.append(device)
                 logger.info(f"Grabbed exclusive access to {device.path}")

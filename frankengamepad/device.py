@@ -13,6 +13,12 @@ async def process_events(device, config, franken_uinputs):
         for franken_device_name in event_code_config.keys():
             hooked_uinputs.append(franken_uinputs[franken_device_name])
 
+    absinfos = dict(device.capabilities(absinfo=True)[evdev.ecodes.EV_ABS])
+    franken_absinfos = {
+        n: dict(d.capabilities(absinfo=True)[evdev.ecodes.EV_ABS])
+        for n, d in franken_uinputs.items()
+    }
+
     async for event in device.async_read_loop():
         # always pass on sync events
         if event.type == evdev.ecodes.EV_SYN:
@@ -28,23 +34,52 @@ async def process_events(device, config, franken_uinputs):
             continue
 
         for franken_device_name, franken_event_code in event_config.items():
+            if event.type == evdev.ecodes.EV_ABS:
+                absinfo = absinfos[event.code]
+                franken_absinfo = franken_absinfos[franken_device_name][franken_event_code],
+            else:
+                absinfo = None
+                franken_absinfo = None,
+
             franken_event(
                 event,
                 franken_uinputs[franken_device_name],
                 franken_event_code,
+                original_absinfo=absinfo,
+                franken_absinfo=franken_absinfo,
             )
 
 
-def franken_event(original_event, franken_uinput, franken_event_code):
+def franken_event(
+        original_event,
+        franken_uinput,
+        franken_event_code,
+        original_absinfo=None,
+        franken_absinfo=None):
+
     event = evdev.InputEvent(
         original_event.sec,
         original_event.usec,
         original_event.type,
         franken_event_code,
-        original_event.value
+        franken_value(original_event.value, original_absinfo, franken_absinfo),
     )
     franken_uinput.write_event(event)
     logger.debug(f"generated event {franken_uinput.device.path} {evdev.categorize(event)} {event.code}")
+
+
+def franken_value(original_value, original_absinfo, franken_absinfo):
+    # if event.type == EV_ABS, shift and scale the value using the absinfo
+    # of both devices.
+    # For example the source value might range from 0-65536 whereas
+    # the output value might range from -32767 to +32767.
+    # Could also get fancy and define deadzones and curves in config, but
+    # let's not for now.
+    if original_absinfo is None:
+        return original_value
+
+    normalized = (original_value - original_absinfo.min) / (original_absinfo.max - original_absinfo.min)
+    return int(normalized * (franken_absinfo.max - franken_absinfo.min) + franken_absinfo.min)
 
 
 def button(uinput, code, value=1, syn=True):

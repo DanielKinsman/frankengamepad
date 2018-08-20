@@ -9,6 +9,10 @@ REQUIRES = [
     "PyYAML>=3.13,<4",
 ]
 
+EXTRAS_REQUIRES = {
+    "interactive": ["ipython>=6.5.0"]
+}
+
 CLASSIFIERS = [
     "Development Status :: 2 - Pre-Alpha",
     "Environment :: Console",
@@ -39,4 +43,5 @@ setup(
         "frankengamepad=frankengamepad.main:main",
     ]},
     install_requires=REQUIRES,
+    extras_require=EXTRAS_REQUIRES,
 )

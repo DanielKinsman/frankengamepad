@@ -37,10 +37,10 @@ async def process_events(device, config, franken_uinputs):
         for franken_device_name, franken_event_code in event_config.items():
             if event.type == evdev.ecodes.EV_ABS:
                 absinfo = absinfos[event.code]
-                franken_absinfo = franken_absinfos[franken_device_name][franken_event_code],
+                franken_absinfo = franken_absinfos[franken_device_name][franken_event_code]
             else:
                 absinfo = None
-                franken_absinfo = None,
+                franken_absinfo = None
 
             franken_event(
                 event,

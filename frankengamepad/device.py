@@ -1,6 +1,7 @@
 import asyncio
 import evdev
 import logging
+import time
 import frankengamepad.config
 
 
@@ -96,9 +97,9 @@ def button(uinput, code, value=1, syn=True):
 
 
 def button_toggle(uinput, code):
-    button(uinput, code, value=1, syn=False)
-    button(uinput, code, value=0, syn=False)
-    uinput.syn()
+    button(uinput, code, value=1)
+    time.sleep(0.1)
+    button(uinput, code, value=0)
 
 
 def make_franken_uinputs(config):

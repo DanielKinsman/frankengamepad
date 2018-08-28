@@ -1,20 +1,14 @@
+# Headtracker controlling the right analog stick but everything
+# else coming from a xbox 360 wireless gamepad
 sources:
     opentrack:
         name: opentrack headpose
         exclusive: true
         events:
-            # ABS_X:
-            #     frankengamepad0: ABS_X
-            # ABS_Y:
-            #     frankengamepad0: ABS_Y
-            # ABS_Z:
-            #     frankengamepad0: ABS_Z
             ABS_RX:
                 frankengamepad0: ABS_RX
             ABS_RY:
                 frankengamepad0: ABS_RY
-            ABS_RZ:
-                frankengamepad0: ABS_RZ
     xbox360:
         name: Xbox 360 Wireless Receiver (XBOX)
         exclusive: true
@@ -25,10 +19,13 @@ sources:
                 frankengamepad0: ABS_Y
             ABS_Z:
                 frankengamepad0: ABS_Z
+            ABS_RZ:
+                frankengamepad0: ABS_RZ
             BTN_A:
                 frankengamepad0: BTN_A
             BTN_START:
                 frankengamepad0: BTN_START
+            # TODO other buttons
 outputs:
     frankengamepad0:
         type: xbox360

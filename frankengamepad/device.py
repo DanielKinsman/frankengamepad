@@ -6,9 +6,6 @@ import time
 import frankengamepad.config
 
 
-VENDOR = 0x3748  # randomly chosen
-PRODUCT = 0xf366  # randomly chosen
-
 logger = logging.getLogger(__name__)
 
 
@@ -180,7 +177,7 @@ def button_toggle(uinput, code):
     :type code: int
     """
     button(uinput, code, value=1)
-    time.sleep(0.1)
+    time.sleep(0.2)
     button(uinput, code, value=0)
 
 
@@ -194,7 +191,8 @@ def make_franken_uinputs(config):
 
         capabilities = {k: v for k, v in capabilities.items()
                 if k not in {evdev.ecodes.EV_SYN, evdev.ecodes.EV_FF}}
-        return evdev.UInput(capabilities, name=name, vendor=VENDOR, product=PRODUCT)
+        # Could set vendor etc but some games don't like it
+        return evdev.UInput(capabilities, name=name)
 
     frankens = {k: make_uinput(k, v) for k, v in config.items()}
     for name, uinput in frankens.items():

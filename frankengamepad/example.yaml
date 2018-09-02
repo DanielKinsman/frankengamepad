@@ -21,11 +21,38 @@ sources:
                 frankengamepad0: ABS_Z
             ABS_RZ:
                 frankengamepad0: ABS_RZ
+            ABS_HAT0X:
+                frankengamepad0: ABS_HAT0X
+            ABS_HAT0Y:
+                frankengamepad0: ABS_HAT0Y
             BTN_A:
                 frankengamepad0: BTN_A
+            BTN_B:
+                frankengamepad0: BTN_B
+            BTN_X:
+                frankengamepad0: BTN_X
+            BTN_Y:
+                frankengamepad0: BTN_Y
+            BTN_TL:
+                frankengamepad0: BTN_TL
+            BTN_TR:
+                frankengamepad0: BTN_TR
+            BTN_TRIGGER_HAPPY1:
+                frankengamepad0: BTN_TRIGGER_HAPPY1
+            BTN_TRIGGER_HAPPY2:
+                frankengamepad0: BTN_TRIGGER_HAPPY2
+            BTN_TRIGGER_HAPPY3:
+                frankengamepad0: BTN_TRIGGER_HAPPY3
+            BTN_TRIGGER_HAPPY4:
+                frankengamepad0: BTN_TRIGGER_HAPPY4
+            BTN_THUMBL:
+                frankengamepad0: BTN_THUMBL
+            BTN_THUMBR:
+                frankengamepad0: BTN_THUMBR
+            BTN_SELECT:
+                frankengamepad0: BTN_SELECT
             BTN_START:
                 frankengamepad0: BTN_START
-            # TODO other buttons
 outputs:
     frankengamepad0:
         type: xbox360
